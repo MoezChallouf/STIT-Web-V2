@@ -23,7 +23,6 @@ return new class extends Migration
             $table->enum('status', ['En Stock', 'Epuisé'])->default('En Stock');
             $table->enum('display', ['Show', 'Hide'])->default('Show');
             $table->foreignId('category_id');
-            // $table->json('images');
             $table->timestamps();
         });
     }

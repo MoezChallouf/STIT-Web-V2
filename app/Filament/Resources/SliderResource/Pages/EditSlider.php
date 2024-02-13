@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Resources\ImageResource\Pages;
+namespace App\Filament\Resources\SliderResource\Pages;
 
-use App\Filament\Resources\ImageResource;
+use App\Filament\Resources\SliderResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
-class EditImage extends EditRecord
+class EditSlider extends EditRecord
 {
-    protected static string $resource = ImageResource::class;
+    protected static string $resource = SliderResource::class;
 
     protected function getHeaderActions(): array
     {

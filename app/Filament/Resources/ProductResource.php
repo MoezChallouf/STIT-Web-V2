@@ -3,39 +3,34 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
-use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Models\Category;
 use App\Models\Product;
-use Filament\Forms;
 use Filament\Forms\Components\ColorPicker;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Infolists\Components\ColorEntry;
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Fields\BelongsTo;
-use Filament\Fields\File;
-use Filament\Fields\HasMany;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Infolists\Components\Tabs;
 use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\SelectColumn;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
-use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Infolists\Infolist;
+
 
 class ProductResource extends Resource
 {
@@ -51,27 +46,27 @@ class ProductResource extends Resource
             Section::make('Create New Product')
             ->schema([
                 TextInput::make('name')
-                ->required(),
+                ->required()
+                ->placeholder('name'),
                 TextInput::make('ref')
-                ->required(),
+                ->label('Referance')
+                ->required()
+                ->placeholder('referance'),
                 Select::make('category_id')
                 ->label('Category')
                 ->options(Category::all()->pluck('name', 'id'))
                 ->searchable()
                 ->required(),
+                TextInput::make('taille')
+                ->required()
+                ->placeholder('Format */*'),
                 
-            ColorPicker::make('color')->required(),
+            ColorPicker::make('color')->required()->placeholder('Choise Color Code #00ff25'),
 
             SpatieMediaLibraryFileUpload::make('image')
             ->image()
             ->imageEditor()
             ->multiple()
-            // ->media()
-            // ->directory('product') // Directory in storage/app/public
-            // ->disk('public') // Ensure you've linked storage using `php artisan storage:link`
-            // ->preserveFilenames()
-            // ->image()
-            // ->imageEditor(), // Optional: ensures only images can be uploaded
             ])
             ->columnSpan(1)
             ->collapsible(),
@@ -80,9 +75,9 @@ class ProductResource extends Resource
 
             Section::make('All Description Type :')
             ->schema([
-                MarkdownEditor::make('long_desc')->required(),
-                Textarea::make('short_desc')->required(),
-                Textarea::make('info_supp')->required(),
+                MarkdownEditor::make('long_desc')->label('Long Description')->required()->placeholder('Enter long Description'),
+                Textarea::make('short_desc')->label('Short Description')->required()->placeholder('Enter Short Description'),
+                Textarea::make('info_supp')->label('Additional Information')->required()->placeholder('Enter more information about product'),
             ])
             ->columnSpan(1)
             ->collapsible(),
@@ -127,6 +122,9 @@ class ProductResource extends Resource
                 ->sortable(),
                 TextColumn::make('ref')
                 ->searchable()
+                ->sortable(), 
+                TextColumn::make('taille')
+                ->searchable()
                 ->sortable(),
                 ColorColumn::make('color')
                 ->searchable()
@@ -136,7 +134,7 @@ class ProductResource extends Resource
                 ->options(Category::all()->pluck('name', 'id'))
                 ->searchable()
                 ->sortable(),
-
+                SpatieMediaLibraryImageColumn::make('image'),
                 IconColumn::make('status')
                 ->color(fn (string $state): string => match ($state) {
                     'Epuisé' => 'danger',
@@ -167,6 +165,7 @@ class ProductResource extends Resource
                 
             
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
@@ -176,6 +175,9 @@ class ProductResource extends Resource
                 ]),
             ]);
     }
+
+
+    
 
     public static function getRelations(): array
     {
@@ -193,19 +195,165 @@ class ProductResource extends Resource
         ];
     }
 
-//     protected function afterSave(Form $form, $record): void
-// {
-//     $images = $form->getState('images') ?? [];
+        public static function infolist(Infolist $infolist): Infolist
+    {
+            return $infolist
+                ->schema([
+                Tabs::make('Tabs')
+                ->tabs([
+                Tabs\Tab::make('Product Details')
+                    ->icon('heroicon-m-document-magnifying-glass')
+                    ->schema([
+                        TextEntry::make('name')->label('Product Name :'),
+                        TextEntry::make('ref')->label('Referance :'),
+                        TextEntry::make('category.name')->label('Product Category :'),
+                    ])
 
-//     foreach ($images as $imageFile) {
-//         $filename = $imageFile->getClientOriginalName();
-//         $path = $imageFile->store('product', 'public');
+                    ->columns(3)
+                    ->columnSpanFull(),
 
-//         $record->images()->create([
-//             'filename' => $filename,
-//             'path' => $path,
-//         ]);
-//     }
-// }
+                    Tabs\Tab::make('Product Description')
+                    ->icon('heroicon-m-chat-bubble-bottom-center-text')
+                    ->schema([
+                        TextEntry::make('long_desc')->label('Long Description :'),
+                        TextEntry::make('short_desc')->label('Short Description :'),
+                        TextEntry::make('info_supp')->label('Additional Information :'),
+                    ])
+
+                    ->columns(3)
+                    ->columnSpanFull(),
+
+                Tabs\Tab::make('More Details')
+                    ->icon('heroicon-m-ellipsis-horizontal-circle')
+                    ->schema([
+                        ColorEntry::make('color')->label('Product Color :'),
+                        TextEntry::make('taille')->label('Taille :'),
+                        IconEntry::make('status')
+                        ->color(fn (string $state): string => match ($state) {
+                            'Epuisé' => 'danger',
+                            'En Stock' => 'success',
+                            })
+                        ->icon(fn (string $state): string => match ($state) {
+                            'En Stock' => 'heroicon-o-check-circle',
+                            'Epuisé' => 'heroicon-o-x-circle',
+                        }),
+
+                        IconEntry::make('display')
+                        ->color(fn (string $state): string => match ($state) {
+                            'Hide' => 'danger',
+                            'Show' => 'success',
+                            })
+                        ->icon(fn (string $state): string => match ($state) {
+                            'Show' => 'heroicon-o-check-circle',
+                            'Hide' => 'heroicon-o-x-circle',
+                        }),
+
+                    ])
+                    ->columns(4)
+                    ->columnSpanFull(),
+
+                Tabs\Tab::make('Product Images')
+                    ->icon('heroicon-m-photo')
+                    ->schema([
+                    SpatieMediaLibraryImageEntry::make('image')->label('Product Images :'),
+                    ]),
+                ])->columnSpanFull()
+                ]);
+    }
+
+    // public static function infolist(Infolist $infolist): Infolist
+    // {
+    //         return $infolist
+    //             ->schema([
+    //                 Filament\Infolists\Components\Section::make('Product Details :')
+    //                 ->schema([
+    //                 TextEntry::make('name')->label('Product Name :'),
+    //                 TextEntry::make('ref')->label('Referance :'),
+    //                 TextEntry::make('long_desc')->label('Long Description :'),
+    //                 TextEntry::make('short_desc')->label('Short Description :'),
+    //                 TextEntry::make('info_supp')->label('Additional Information :'),
+    //                 TextEntry::make('category.name')->label('Product Category :'),
+    //                 ])->columns(2),
+
+    //                 Filament\Infolists\Components\Section::make('Other Details :')
+    //                 ->schema([
+    //                 ColorEntry::make('color')->label('Product Color :'),
+    //                 TextEntry::make('taille')->label('Taille :'),
+    //                 IconEntry::make('status')
+    //                 ->color(fn (string $state): string => match ($state) {
+    //                     'Epuisé' => 'danger',
+    //                     'En Stock' => 'success',
+    //                     })
+    //                 ->icon(fn (string $state): string => match ($state) {
+    //                     'En Stock' => 'heroicon-o-check-circle',
+    //                     'Epuisé' => 'heroicon-o-x-circle',
+    //                 }),
+
+    //                 IconEntry::make('display')
+    //                 ->color(fn (string $state): string => match ($state) {
+    //                     'Hide' => 'danger',
+    //                     'Show' => 'success',
+    //                     })
+    //                 ->icon(fn (string $state): string => match ($state) {
+    //                     'Show' => 'heroicon-o-check-circle',
+    //                     'Hide' => 'heroicon-o-x-circle',
+    //                 }),
+
+    //                 ])->columnSpanFull(),
+
+    //                 Filament\Infolists\Components\Section::make('Other Details :')
+    //                 ->schema([
+    //                     SpatieMediaLibraryImageEntry::make('image')->label('Product Images :'),
+    //                 ])
+    //         ]);
+    // }
+    
+
+    // public static function infolist(Infolist $infolist): Infolist
+    // {
+    //         return $infolist
+    //             ->schema([
+    //             Grid::make('Product Details :')
+    //             ->schema([
+    //             TextEntry::make('name')->label('Product Name :'),
+    //             TextEntry::make('ref')->label('Referance :'),
+    //             TextEntry::make('long_desc')->label('Long Description :'),
+    //             TextEntry::make('short_desc')->label('Short Description :'),
+    //             TextEntry::make('info_supp')->label('Additional Information :'),
+    //             TextEntry::make('category.name')->label('Product Category :'),
+    //             ])->columns(2),
+
+    //             // Section::make('Other Details :')
+    //             // ->schema([
+    //             // ColorEntry::make('color')->label('Product Color :'),
+    //             // TextEntry::make('taille')->label('Taille :'),
+    //             // IconEntry::make('status')
+    //             // ->color(fn (string $state): string => match ($state) {
+    //             //     'Epuisé' => 'danger',
+    //             //     'En Stock' => 'success',
+    //             //     })
+    //             // ->icon(fn (string $state): string => match ($state) {
+    //             //     'En Stock' => 'heroicon-o-check-circle',
+    //             //     'Epuisé' => 'heroicon-o-x-circle',
+    //             // }),
+
+    //             // IconEntry::make('display')
+    //             // ->color(fn (string $state): string => match ($state) {
+    //             //     'Hide' => 'danger',
+    //             //     'Show' => 'success',
+    //             //     })
+    //             // ->icon(fn (string $state): string => match ($state) {
+    //             //     'Show' => 'heroicon-o-check-circle',
+    //             //     'Hide' => 'heroicon-o-x-circle',
+    //             // }),
+
+    //             // ])->columnSpanFull(),
+
+    //             // Section::make('Other Details :')
+    //             // ->schema([
+    //             //     SpatieMediaLibraryImageEntry::make('image')->label('Product Images :'),
+    //             // ])
+    //         ]);
+    // }
 
 }
